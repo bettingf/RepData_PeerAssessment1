@@ -8,11 +8,28 @@ output:
 
 ## Loading and preprocessing the data
 
+First, let's read the data. We used the `unz` function to read the `activity.zip` file.
+
+```{r}
+data<-read.csv(unz("activity.zip", "activity.csv"))
+```
 
 
 ## What is mean total number of steps taken per day?
 
+Let's plot an histogram of the total number of steps per day (with a binwidth of 1000).
 
+```{r}
+library(ggplot2)
+stepsPerDay<-aggregate(steps~date, data=data, sum)
+ggplot(stepsPerDay, aes(x=steps)) + geom_histogram(binwidth=1000)
+``` 
+
+The mean and median of the total number of steps taken per day are :
+
+```{r}
+c(mean(stepsPerDay$steps), median(stepsPerDay$steps))
+``` 
 
 ## What is the average daily activity pattern?
 
