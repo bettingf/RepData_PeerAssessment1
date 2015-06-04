@@ -1,0 +1,147 @@
+---
+title: 'Reproducible Research: Peer Assessment 1'
+output:
+  html_document:
+    keep_md: yes
+  pdf_document: default
+---
+
+
+## Loading and preprocessing the data
+
+* First, let's read the data. We used the `unz` function to read the `activity.zip` file.
+
+
+```r
+data<-read.csv(unz("activity.zip", "activity.csv"))
+```
+
+* No transformation needs to be done to the data so far.
+
+## What is mean total number of steps taken per day?
+
+* Let's plot an histogram of the total number of steps per day (with a binwidth of 1000).
+
+
+```r
+library(ggplot2)
+stepsPerDay<-aggregate(steps~date, data=data, sum)
+ggplot(stepsPerDay, aes(x=steps)) + geom_histogram(binwidth=1000)
+```
+
+![plot of chunk unnamed-chunk-2](figure/unnamed-chunk-2-1.png) 
+
+* The mean and median of the total number of steps taken per day are :
+
+
+```r
+c(mean(stepsPerDay$steps), median(stepsPerDay$steps))
+```
+
+```
+## [1] 10766.19 10765.00
+```
+
+## What is the average daily activity pattern?
+
+* Let's see the average number of steps taken per interval :
+
+
+```r
+meanStepsPerIntervals<-aggregate(steps~interval, data, mean)
+plot(meanStepsPerIntervals$interval, meanStepsPerIntervals$steps, type="l", xlab="interval", ylab="average number of steps taken across all days")
+```
+
+![plot of chunk unnamed-chunk-4](figure/unnamed-chunk-4-1.png) 
+
+
+* The maximum average of steps across all days takes place at the interval :
+
+
+```r
+meanStepsPerIntervals[meanStepsPerIntervals$steps == max(meanStepsPerIntervals$steps),"interval"]
+```
+
+```
+## [1] 835
+```
+
+## Imputing missing values
+
+* First, let's calculate the number of rows with NA's. 
+To calculate that number, we check for each row if there is any NA and count the number of TRUE values weve got by using the sum function. The TRUE values will be considered as 1 and FALSE as 0.
+
+
+```r
+sum(sapply(is.na(data), any))
+```
+
+```
+## [1] 2304
+```
+
+* To divise a strategy for missing values. Let's check if there are no missing values on the dates or intervals :
+
+```r
+c(any(is.na(data[,2])), any(is.na(data[,3])))
+```
+
+```
+## [1] FALSE FALSE
+```
+
+We can use either the mean, median for a day or the mean on the 5 minutes interval to fill the missing values and don't need to worry about missing dates of intervals since all dates and intervals are present.
+
+* Let's take the mean of 5 minutes intervals to fill the missing values :
+
+
+```r
+library(plyr)
+m<-join(data, meanStepsPerIntervals, by="interval", match="first")
+filledData<-data
+filledData[is.na(data$steps),"steps"]<-m[is.na(data$steps),4]
+```
+
+* Let's plot the histogram of the total number of steps per day for the new data (with a binwidth of 1000) :
+
+
+```r
+filledStepsPerDay<-aggregate(steps~date, data=filledData, sum)
+ggplot(filledStepsPerDay, aes(x=steps)) + geom_histogram(binwidth=1000)
+```
+
+![plot of chunk unnamed-chunk-9](figure/unnamed-chunk-9-1.png) 
+
+  The mean and median of the total number of steps taken per day for the new dataset are :
+
+
+```r
+c(mean(filledStepsPerDay$steps), median(filledStepsPerDay$steps))
+```
+
+```
+## [1] 10766.19 10766.19
+```
+
+  The mean does not differ from the original data but the median does. Actually, this is only because I've chosen to use the mean for the missing values. Both values should differ (for instance, if I used 0 instead of the mean, the global mean would have decreased). he only conclusion we can have is that the mean and median changes if we include the estimated missing values.
+
+## Are there differences in activity patterns between weekdays and weekends?
+
+* Let's add the WE variable to the data.frame that represents if a day is a weekdayor a weekend :
+
+
+```r
+library(timeDate)
+data$WE<-factor(ifelse(isWeekday(data[,2]),"weekday","weekend"))
+```
+
+* Let's see the average number of steps taken per interval separated by weekdays and weekends :
+
+
+```r
+library(lattice)
+stepsPerDayWE<-aggregate(steps~interval+WE, data=data, mean)
+xyplot(steps~interval|WE, data = stepsPerDayWE, type="l", layout=c(1,2))
+```
+
+![plot of chunk unnamed-chunk-12](figure/unnamed-chunk-12-1.png) 
